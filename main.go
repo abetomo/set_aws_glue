@@ -7,11 +7,27 @@ import (
 	"github.com/aws/aws-sdk-go/service/glue"
 )
 
+func createDatabaseIfNotExists(service *glue.Glue, name string) {
+	getParams := glue.GetDatabaseInput{}
+	getParams.SetName(name)
+	if _, err := service.GetDatabase(&getParams); err == nil {
+		// Database already exists
+		return
+	}
+
+	createParams := glue.CreateDatabaseInput{}
+	createParams.SetDatabaseInput(&glue.DatabaseInput{Name: aws.String(name)})
+	if _, err := service.CreateDatabase(&createParams); err != nil {
+		fmt.Println(err)
+	}
+}
+
 func main() {
 	sess, _ := session.NewSession()
 	// TODO: Error handling
 
 	service := glue.New(sess)
+	createDatabaseIfNotExists(service, "DatabaseName")
 
 	// TODO: Make the value of the example a genuine version
 	targets := glue.CrawlerTargets{}
