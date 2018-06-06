@@ -1,11 +1,22 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/glue"
+	"io/ioutil"
+	"os"
 )
+
+type CreateCrawlerParams struct {
+	DatabaseName string
+	CrawlerName  string
+	CrawlerRole  string
+	S3Path       string
+}
 
 func createDatabaseIfNotExists(service *glue.Glue, name string) {
 	getParams := glue.GetDatabaseInput{}
@@ -23,28 +34,43 @@ func createDatabaseIfNotExists(service *glue.Glue, name string) {
 }
 
 func main() {
+	configJsonPath := flag.String("config", "", "Path of config JSON file")
+	flag.Parse()
+	if *configJsonPath == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	// Load configuration file
+	var config CreateCrawlerParams
+	bytes, _ := ioutil.ReadFile(*configJsonPath)
+	if err := json.Unmarshal(bytes, &config); err != nil {
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	sess, _ := session.NewSession()
 	// TODO: Error handling
 
 	service := glue.New(sess)
-	createDatabaseIfNotExists(service, "DatabaseName")
+	createDatabaseIfNotExists(service, config.DatabaseName)
 
-	// TODO: Make the value of the example a genuine version
 	targets := glue.CrawlerTargets{}
 	targets.SetS3Targets([]*glue.S3Target{
-		&glue.S3Target{Path: aws.String("S3Path")},
+		&glue.S3Target{Path: aws.String(config.S3Path)},
 	})
 
 	params := glue.CreateCrawlerInput{
-		DatabaseName: aws.String("DatabaseName"),
-		Name:         aws.String("CrawlerName"),
-		Role:         aws.String("CrawlerRole"),
+		DatabaseName: aws.String(config.DatabaseName),
+		Name:         aws.String(config.CrawlerName),
+		Role:         aws.String(config.CrawlerRole),
 		Targets:      &targets,
 	}
-	response, err := service.CreateCrawler(&params)
-	fmt.Println(response)
 	// TODO: Error handling
-	if err != nil {
+	if _, err := service.CreateCrawler(&params); err != nil {
 		fmt.Println(err)
+		os.Exit(1)
 	}
+	fmt.Println("Added a glue crawler")
+	fmt.Println(string(bytes))
 }
