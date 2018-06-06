@@ -1,0 +1,6 @@
+{
+    "DatabaseName": "DatabaseName",
+    "CrawlerName": "CrawlerName",
+    "CrawlerRole": "arn:aws:iam::xxx:role/service-role/yyy",
+    "S3Path": "BUCKET_NAME/S3_KEY"
+}
