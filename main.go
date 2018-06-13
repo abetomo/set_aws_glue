@@ -49,8 +49,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	sess, _ := session.NewSession()
-	// TODO: Error handling
+	sess, sessErr := session.NewSession()
+	if sessErr != nil {
+		fmt.Println(sessErr)
+		os.Exit(1)
+	}
 
 	service := glue.New(sess)
 	createDatabaseIfNotExists(service, config.DatabaseName)
@@ -66,7 +69,6 @@ func main() {
 		Role:         aws.String(config.CrawlerRole),
 		Targets:      &targets,
 	}
-	// TODO: Error handling
 	if _, err := service.CreateCrawler(&params); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
